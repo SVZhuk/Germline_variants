@@ -83,7 +83,7 @@ gatk --java-options "-Xmx60G" SelectVariants \
 gatk --java-options "-Xmx60G" SelectVariants \
   -R "$Reference" \
   --intervals "$Probes" \
-  -V "$CohortVcfDir/$CohortVcfId".joint.lnorm.vcf \
+  -V "$CohortVcfDir/$CohortVcfId".joint.vcf \
   -O "$HfDir/$CohortVcfId".indel.unfiltered.vcf \
   -select-type INDEL \
   2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
