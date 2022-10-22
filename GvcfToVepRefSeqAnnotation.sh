@@ -38,113 +38,60 @@ fi
 
 mkdir -p "$CohortVcfDir"
 
-echo "Activating gatk conda environment."
-
 # shellcheck source=/mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
 source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
 conda activate gatk
 
-# Combine GVCFs into one file
-# Write all gvcf files location to a file and use it for gatk
-
-echo "Creating file with a list of gvcf file locations."
-
+# find and list all gVCF files of interst
 find "$GvcfDir" -iname "*.g.vcf.gz" > "$CohortVcfDir"/gvcf.list
 
-# Remove old log file:
-rm CombineGvcfLog.txt
-
-# Create a genomic DB for samples:
+# Reference files
 Reference="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta"
-
-gatk --java-options "-Xms24G -Xmx64G -XX:ParallelGCThreads=2" GenomicsDBImport \
-  -R "$Reference" \
-  --intervals "$Probes" \
-  --interval-padding 100 \
-  --merge-input-intervals \
-  --genomicsdb-workspace-path "$CohortVcfDir"/"$CohortVcfId"_database \
-  --batch-size 100 \
-  --max-num-intervals-to-import-in-parallel 10 \
-  -V "$CohortVcfDir"/gvcf.list \
-  2>&1 | tee -a "$CohortVcfId"_DatabaseCreationLog.txt
-
-echo "Completed creation of GVCF database!"
-
-#Genotype files from Database
-gatk --java-options "-Xmx64G -XX:ParallelGCThreads=2" GenotypeGVCFs \
-  -R "$Reference" \
-  -V gendb://"$CohortVcfDir"/"$CohortVcfId"_database \
-  -O "$CohortVcfDir"/"$CohortVcfId".joint.vcf \
-  2>&1 | tee -a "$CohortVcfId"_DatabaseCreationLog.txt
-
-echo "Completed genotypeing GVCF files!"
-
-echo "Performing left-normalization and splitting of multiallelic sites"
-
-gatk --java-options "-Xms24G -Xmx64G -XX:ParallelGCThreads=2" LeftAlignAndTrimVariants \
-  -R "$Reference" \
-  -V "$CohortVcfDir"/"$CohortVcfId".joint.vcf \
-  -O "$CohortVcfDir"/"$CohortVcfId".joint.lnorm.vcf \
-  --split-multi-allelics \
-  2>&1 | tee -a "$CohortVcfId"_DatabaseCreationLog.txt
-
-echo "Completed left-normalization and splitting of multiallelic sites"
-echo "Collecting variant statistics across samples"
-
-# Collect metrics for variants from cohort file
 dbSNP="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Annotation/GATKBundle/dbsnp_138.hg38.vcf.gz"
 RefGenomeDict="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.dict"
 
-gatk --java-options "-Xms24G -Xmx24G" CollectVariantCallingMetrics \
-  -I "$CohortVcfDir"/"$CohortVcfId".joint.lnorm.vcf \
-  --DBSNP "$dbSNP" \
-  -SD "$RefGenomeDict" \
-  -O "$CohortVcfDir"/"$CohortVcfId".joint.metrics \
-  2>&1 | tee -a "$CohortVcfId"_DatabaseCreationLog.txt
+# Convert gVCF files into cohort VCF file:
+gatk --java-options "-Xms24G -Xmx64G -XX:ParallelGCThreads=2" GenomicsDBImport \
+  -R "$Reference" \
+  --intervals "$Probes" \
+  --merge-input-intervals \
+  --genomicsdb-workspace-path "$CohortVcfDir/$CohortVcfId"_database \
+  --batch-size 100 \
+  --max-num-intervals-to-import-in-parallel 10 \
+  -V "$CohortVcfDir"/gvcf.list \
+  2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
-# Clean up intermediate files:
+gatk --java-options "-Xmx64G -XX:ParallelGCThreads=2" GenotypeGVCFs \
+  -R "$Reference" \
+  -V gendb://"$CohortVcfDir/$CohortVcfId"_database \
+  -O "$CohortVcfDir/$CohortVcfId".joint.vcf \
+  2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
-rm "$GvcfDir"/gvcf.list
-rm "$GvcfDir"/"$CohortVcfId".g.vcf
-rm "$GvcfDir"/"$CohortVcfId".g.vcf.idx
-rm "$CohortVcfDir"/"$CohortVcfId".joint.vcf
-rm "$CohortVcfDir"/"$CohortVcfId".joint.vcf.idx
-
-echo "Performing hard filtering on cohort VCF file."
-
+# Hard filtering of variants
+# Select SNPs and INDELs separately
 mkdir -p "$CohortVcfDir"/HardFiltering
-
 HfDir="$CohortVcfDir"/HardFiltering
 
-# Select variants from Cohort file
-
-echo "Selecting SNPs from Cohort file."
-
 gatk --java-options "-Xmx60G" SelectVariants \
   -R "$Reference" \
   --intervals "$Probes" \
-  -V "$CohortVcfDir"/"$CohortVcfId".joint.lnorm.vcf \
-  -O "$HfDir"/"$CohortVcfId".snp.unfiltered.vcf \
+  -V "$CohortVcfDir/$CohortVcfId".joint.vcf \
+  -O "$HfDir/$CohortVcfId".snp.unfiltered.vcf \
   -select-type SNP \
-  2>&1 | tee -a "$HfDir"/GatkHardFilteringLog.txt
-
-echo "Selecting INDELs from Cohort file."
+  2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
 gatk --java-options "-Xmx60G" SelectVariants \
   -R "$Reference" \
   --intervals "$Probes" \
-  -V "$CohortVcfDir"/"$CohortVcfId".joint.lnorm.vcf \
-  -O "$HfDir"/"$CohortVcfId".indel.unfiltered.vcf \
+  -V "$CohortVcfDir/$CohortVcfId".joint.lnorm.vcf \
+  -O "$HfDir/$CohortVcfId".indel.unfiltered.vcf \
   -select-type INDEL \
-  2>&1 | tee -a "$HfDir"/GatkHardFilteringLog.txt
+  2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
 # Filter variants
-
-echo "Filtering SNPs..."
-
 gatk --java-options "-Xmx64G" VariantFiltration \
   -R "$Reference" \
-  -V "$HfDir"/"$CohortVcfId".snp.unfiltered.vcf \
+  -V "$HfDir/$CohortVcfId".snp.unfiltered.vcf \
   --filter-expression "QD < 2.0" --filter-name "QD_lt_2" \
   --filter-expression "SOR > 3.0" --filter-name "SOR_gt_3" \
   --filter-expression "QUAL < 30.0" --filter-name "QUAL_lt_30" \
@@ -152,37 +99,33 @@ gatk --java-options "-Xmx64G" VariantFiltration \
   --filter-expression "MQ < 40.0" --filter-name "MQ_lt_40" \
   --filter-expression "MQRankSum < -12.5" --filter-name "MQRS_lt_n12.5" \
   --filter-expression "ReadPosRankSum < -8.0" --filter-name "RPRS_lt_n8" \
-  -O "$HfDir"/"$CohortVcfId".snp.filtered.vcf \
-  2>&1 | tee -a "$HfDir"/GatkHardFilteringLog.txt
-
-echo "Filtering INDELs..."
+  -O "$HfDir/$CohortVcfId".snp.filtered.vcf \
+  2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
 gatk --java-options "-Xmx64G" VariantFiltration \
   -R "$Reference" \
-  -V "$HfDir"/"$CohortVcfId".indel.unfiltered.vcf \
+  -V "$HfDir/$CohortVcfId".indel.unfiltered.vcf \
   --filter-expression "QD < 2.0" --filter-name "QD_lt_2" \
   --filter-expression "QUAL < 30.0" --filter-name "QUAL_lt_30" \
   --filter-expression "FS > 200.0" --filter-name "FS_gt_200" \
   --filter-expression "ReadPosRankSum < -20.0" --filter-name "RPRSum_lt_n20" \
-  -O "$HfDir"/"$CohortVcfId".indel.filtered.vcf \
-  2>&1 | tee -a "$HfDir"/GatkHardFilteringLog.txt
-
-# Combine filtered variants
+  -O "$HfDir/$CohortVcfId".indel.filtered.vcf \
+  2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
 gatk --java-options "-Xmx64G" MergeVcfs \
-  -I "$HfDir"/"$CohortVcfId".indel.filtered.vcf \
-  -I "$HfDir"/"$CohortVcfId".snp.filtered.vcf \
-  -O "$HfDir"/"$CohortVcfId".all.filtered.vcf \
-  2>&1 | tee -a "$HfDir"/GatkHardFilteringLog.txt
+  -I "$HfDir/$CohortVcfId".indel.filtered.vcf \
+  -I "$HfDir/$CohortVcfId".snp.filtered.vcf \
+  -O "$HfDir/$CohortVcfId".all.filtered.vcf \
+  2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
 echo "Collecting statistics on Hard Filtered Files..."
 
 gatk CollectVariantCallingMetrics \
-  -I "$HfDir"/"$CohortVcfId".all.filtered.vcf \
+  -I "$HfDir/$CohortVcfId".all.filtered.vcf \
   --DBSNP "$dbSNP" \
   -SD "$RefGenomeDict" \
-  -O "$HfDir"/"$CohortVcfId".all.filtered.metrics \
-  2>&1 | tee -a "$HfDir"/GatkHardFilteringLog.txt
+  -O "$HfDir/$CohortVcfId".all.filtered.metrics \
+  2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
 rm "$HfDir"/*.snp.filtered.vcf
 rm "$HfDir"/*.snp.filtered.vcf.idx
@@ -194,9 +137,6 @@ rm "$HfDir"/*.unfiltered.vcf.idx
 InputVCF="$HfDir/$CohortVcfId".all.filtered.vcf
 OutputDir="$HfDir"
 
-echo "Input Cohort VCF file is located at: $InputVCF."
-echo "Output directory for per patient VCF files and TSV tables is: $OutputDir"
-
 # Make separate folders for VCF files and TSV tables
 mkdir -p "$OutputDir"/{TSVs,VCFs}
 
@@ -205,35 +145,35 @@ for sample in $(bcftools query -l "$InputVCF"); do
   echo "Writing $sample patients's data to a separate VCF file in $OutputDir."
 
   # -c1 option drops empty genotypes
-  bcftools view -c1 -s "$sample" -Ov -o "$OutputDir"/VCFs/"$sample".vcf "$InputVCF" \
-    2>&1 | tee -a "$OutputDir"/SplittingVcfLog.txt
+  bcftools view -c1 -s "$sample" -Ov -o "$OutputDir/VCFs/$sample".vcf "$InputVCF" \
+    2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
   echo "Splitting multiallelic sites."
 
-  bcftools norm -m-both -o "$OutputDir"/VCFs/"$sample".step1.vcf "$OutputDir"/VCFs/"$sample".vcf \
-    2>&1 | tee -a "$OutputDir"/SplittingVcfLog.txt
+  bcftools norm -m-both -o "$OutputDir/VCFs/$sample".step1.vcf "$OutputDir/VCFs/$sample".vcf \
+    2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
   echo "Left-normalization of variants."
 
-  bcftools norm -f "$Reference" -o "$OutputDir"/VCFs/"$sample".lnorm.vcf "$OutputDir"/VCFs/"$sample".step1.vcf \
-    2>&1 | tee -a "$OutputDir"/SplittingVcfLog.txt
+  bcftools norm -f "$Reference" -o "$OutputDir/VCFs/$sample".lnorm.vcf "$OutputDir/VCFs/$sample".step1.vcf \
+    2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
-  rm "$OutputDir"/VCFs/"$sample".vcf
-  rm "$OutputDir"/VCFs/"$sample".step1.vcf
+  rm "$OutputDir/VCFs/$sample".vcf
+  rm "$OutputDir/VCFs/$sample".step1.vcf
 
   echo "Indexing $sample VCF file for gatk tool."
 
   gatk IndexFeatureFile \
-    -I "$OutputDir"/VCFs/"$sample".lnorm.vcf
+    -I "$OutputDir/VCFs/$sample".lnorm.vcf
 
   echo "Writing genotype information from $sample VCF file to Table."
 
   gatk VariantsToTable \
-    -V "$OutputDir"/VCFs/"$sample".lnorm.vcf \
+    -V "$OutputDir/VCFs/$sample".lnorm.vcf \
     -F CHROM -F POS -F TYPE -F REF -F ALT -F FILTER -GF AD -GF DP -GF GQ \
-    -O "$OutputDir"/TSVs/"$sample".table \
+    -O "$OutputDir/TSVs/$sample".table \
     --show-filtered \
-    2>&1 | tee -a "$OutputDir"/SplittingVcfLog.txt
+    2>&1 | tee -a "$CohortVcfId"_Annotation_Log.txt
 
 done
 
@@ -277,7 +217,7 @@ for file in "$InputDir"/*.lnorm.vcf; do
     --bam "$Bam" \
     --hgvs \
     --hgvsg \
-    --fork 4 \
+    --fork 8 \
     --buffer_size 80000 \
     --assembly GRCh38 \
     --symbol \
