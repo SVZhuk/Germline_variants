@@ -45,7 +45,7 @@ nextflow run ${PipelineDir}  \
     --igenomes_base ${iGenomes_base} \
     --wes true \
     --intervals ${Probes} \
-    --tools haplotypecaller,strelka,merge \
+    --tools haplotypecaller,strelka \
     --max_cpus 80 \
     --max_memory 180.GB \
     -resume
