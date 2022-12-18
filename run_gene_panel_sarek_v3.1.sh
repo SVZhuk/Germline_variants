@@ -35,6 +35,9 @@ conda activate nf-core
 
 echo "Currently running shell from $(pwd)"
 
+docker system prune --all --force
+docker image prune --all --force
+
 iGenomes_base="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/"
 
 nextflow run ${PipelineDir}  \
@@ -46,6 +49,8 @@ nextflow run ${PipelineDir}  \
     --wes true \
     --intervals ${Probes} \
     --tools haplotypecaller,strelka \
+    --save_output_as_bam \
     --max_cpus 80 \
     --max_memory 180.GB \
     -resume
+
