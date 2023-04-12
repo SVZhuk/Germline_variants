@@ -13,7 +13,7 @@ mkdir -p "$OutputDir"/{TSVs,VCFs}
 echo "Input VCF files are located at: ${InputDir}"
 echo "Output directory for per patient VCF files and TSV tables is: ${OutputDir}"
 
-for file in $(find ${InputDir} \( -name "*.haplotypecaller.filtered.vcf.gz" -o -name "*.deepvariant.vcf.gz" \)); do
+for file in $(find ${InputDir} -name "*.vcf.gz"); do
 
   echo "Splitting multiallelic sites."
   ID=$(basename ${file%.vcf.gz})
@@ -57,7 +57,7 @@ CaddIndels="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/CADD_gnomad.ge
 LofteePath="/mnt/hdd/nextflow_dir/workspace/REF/VEP_108_cache/Plugins/loftee/"
 human_ancestor_fa="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/human_ancestor.fa.gz"
 conservation_file="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/phylocsf_gerp.sql"
-ClinVar="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/clinvar_20230305.vcf.gz"
+ClinVar="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/clinvar_20221211.vcf.gz"
 TopMed="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/TOPMED_GRCh38_20180418.vcf.gz"
 dbNSFPfile="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/dbNSFP4.2a_grch38.gz"
 replacement_logic="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/dbNSFP_replacement_logic.txt"
@@ -77,7 +77,7 @@ for file in ${InputDir}/*.lnorm.vcf; do
     --no_stats \
     --hgvs \
     --hgvsg \
-    --fork 8 \
+    --fork 10 \
     --buffer_size 80000 \
     --assembly GRCh38 \
     --symbol \
@@ -97,6 +97,12 @@ for file in ${InputDir}/*.lnorm.vcf; do
     --sift b \
     --polyphen b \
     --pubmed \
+    --check_existing \
+    --check_frequency \
+    --freq_pop 1KG_EUR \
+    --freq_freq 0.01 \
+    --freq_gt_lt gt \
+    --freq_filter exclude \
     --plugin CADD,$CaddSnps,$CaddIndels \
     --plugin LoF,loftee_path:${Plugins},human_ancestor_fa:$human_ancestor_fa,conservation_file:$conservation_file \
     --custom $ClinVar,ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT,CLNDN \

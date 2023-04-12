@@ -8,6 +8,14 @@ InputVCF=$1
 OutputDir=$2
 FileName=$(basename ${InputVCF%.vcf.gz})
 
+if [[ $# -eq 0 ]]; then
+  echo "No arguments provided!
+        Requires positional arguments:
+        1: Path to cohort VCF after VQSR recalibration
+        2: Path to output directory
+        Exiting..."
+fi
+
 # Make separate folders for VCF files and TSV tables
 mkdir -p "$OutputDir"/{TSVs,VCFs}
 
@@ -16,7 +24,7 @@ echo "Output directory for per patient VCF files and TSV tables is: $OutputDir"
 
 Reference="/home/students/nextflow_dir/workspace/REF/iGenomes/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta"
 
-bcftools view -i 'FILTER="PASS"' ${InputVCF} > ${OutputDir}/${FileName}.bcftools.PASS.vcf
+bcftools view -i 'FILTER="PASS"' ${InputVCF} >${OutputDir}/${FileName}.bcftools.PASS.vcf
 InputVCF=${OutputDir}/${FileName}.bcftools.PASS.vcf
 
 for sample in $(bcftools query -l ${InputVCF}); do
@@ -60,18 +68,14 @@ conda deactivate
 
 InputDir=$OutputDir/VCFs/
 
-conda activate vep
-
 # Make directory for VEP outputs
 mkdir -p "$OutputDir"/VEP
 
-VepCache="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/"
-Plugins="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/"
-Ref="/mnt/hdd/nextflow_dir/workspace/REF/Ref_GRCh38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta"
-Bam="/mnt/hdd/nextflow_dir/workspace/REF/Ref_GRCh38/GCF_000001405.39_GRCh38.p13_knownrefseq_alns.bam"
+VepCache="/mnt/hdd/nextflow_dir/workspace/REF/VEP_108_cache/"
+Plugins="/mnt/hdd/nextflow_dir/workspace/REF/VEP_108_cache/Plugins/"
 CaddSnps="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/CADD_whole_genome_SNVs.tsv.gz"
 CaddIndels="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/CADD_gnomad.genomes.r3.0.indel.tsv.gz"
-LofteePath="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/loftee/"
+LofteePath="/mnt/hdd/nextflow_dir/workspace/REF/VEP_108_cache/Plugins/loftee/"
 human_ancestor_fa="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/human_ancestor.fa.gz"
 conservation_file="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/phylocsf_gerp.sql"
 ClinVar="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/clinvar_20221211.vcf.gz"
@@ -85,17 +89,16 @@ spliceai_indel="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/spliceai_s
 for file in "$InputDir"/*.lnorm.vcf; do
 
   ID=$(basename "${file%.lnorm.vcf}")
-  vep --offline \
+  perl /home/students/nextflow_dir/workspace/ensembl-vep/vep \
+    --offline \
     --cache \
     --refseq \
-    --dir_cache "$VepCache" \
-    --dir_plugins "$Plugins" \
+    --dir_cache ${VepCache} \
+    --dir_plugins ${Plugins} \
     --no_stats \
-    --fasta "$Ref" \
-    --bam "$Bam" \
     --hgvs \
     --hgvsg \
-    --fork 10 \
+    --fork 20 \
     --buffer_size 80000 \
     --assembly GRCh38 \
     --symbol \
@@ -115,11 +118,12 @@ for file in "$InputDir"/*.lnorm.vcf; do
     --sift b \
     --polyphen b \
     --pubmed \
+    --check_existing \
     --check_frequency \
     --freq_pop 1KG_EUR \
     --freq_freq 0.01 \
-    --freq_gt_lt lt \
-    --freq_filter include \
+    --freq_gt_lt gt \
+    --freq_filter exclude \
     --plugin CADD,$CaddSnps,$CaddIndels \
     --plugin LoF,loftee_path:$LofteePath,human_ancestor_fa:$human_ancestor_fa,conservation_file:$conservation_file \
     --custom $ClinVar,ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT,CLNDN \
@@ -137,7 +141,5 @@ for file in "$InputDir"/*.lnorm.vcf; do
   echo "Done with annotation of $file file!"
 
 done
-
-echo "Deactivating vep environment."
 
 exit
