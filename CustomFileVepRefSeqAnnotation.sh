@@ -1,56 +1,6 @@
 #!/bin/bash
 
-set -ex -o pipefail
-
-# shellcheck source=/mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
-source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
-conda activate gatk
-
-InputDir=$1
-OutputDir=$2
-
-# Make separate folders for VCF files and TSV tables
-mkdir -p "$OutputDir"/{TSVs,VCFs}
-
-echo "Input VCF files are located at: ${InputDir}"
-echo "Output directory for per patient VCF files and TSV tables is: ${OutputDir}"
-
-for file in $(find ${InputDir} \( -name "*.haplotypecaller.filtered.vcf.gz" -o -name "*.deepvariant.vcf.gz" \)); do
-
-  echo "Splitting multiallelic sites."
-  ID=$(basename ${file%.vcf.gz})
-  Reference="/home/students/nextflow_dir/workspace/REF/iGenomes/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta"
-
-  bcftools norm -m-both -o ${OutputDir}/VCFs/${ID}.step1.vcf ${file}
-
-  echo "Left-normalization of variants."
-
-  bcftools norm -f ${Reference} -o ${OutputDir}/VCFs/${ID}.lnorm.vcf ${OutputDir}/VCFs/${ID}.step1.vcf
-
-  rm ${OutputDir}/VCFs/${ID}.step1.vcf
-
-  echo "Indexing $sample VCF file for gatk tool."
-
-  gatk IndexFeatureFile \
-    -I ${OutputDir}/VCFs/${ID}.lnorm.vcf
-
-  echo "Writing genotype information from ${file} VCF file to Table."
-
-  gatk VariantsToTable \
-    -V ${OutputDir}/VCFs/${ID}.lnorm.vcf \
-    -F CHROM -F POS -F TYPE -F REF -F ALT -F FILTER -GF AD -GF DP -GF GQ \
-    -O ${OutputDir}/TSVs/${ID}.table \
-    --show-filtered
-
-done
-
-echo "Deactivating gatk environment."
-conda deactivate
-
-InputDir=${OutputDir}/VCFs/
-
-# Make directory for VEP outputs
-mkdir -p ${OutputDir}/VEP
+FILE=$1
 
 VepCache="/mnt/hdd/nextflow_dir/workspace/REF/VEP_108_cache/"
 Plugins="/mnt/hdd/nextflow_dir/workspace/REF/VEP_108_cache/Plugins/"
@@ -67,10 +17,8 @@ dbscSNVfile="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/dbscSNV1.1_GR
 spliceai_snv="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/spliceai_scores.raw.snv.hg38.vcf.gz"
 spliceai_indel="/mnt/hdd/nextflow_dir/workspace/REF/VEP_cache/Plugins/spliceai_scores.raw.indel.hg38.vcf.gz"
 
-for file in ${InputDir}/*.lnorm.vcf; do
-
-  ID=$(basename ${file%.lnorm.vcf})
-  perl /home/students/nextflow_dir/workspace/ensembl-vep/vep \
+ID=$(basename ${FILE%.*})
+perl /home/students/nextflow_dir/workspace/ensembl-vep/vep \
     --offline \
     --cache \
     --refseq \
@@ -99,6 +47,7 @@ for file in ${InputDir}/*.lnorm.vcf; do
     --sift b \
     --polyphen b \
     --pubmed \
+    --format vcf \
     --plugin CADD,$CaddSnps,$CaddIndels \
     --plugin LoF,loftee_path:${Plugins},human_ancestor_fa:$human_ancestor_fa,conservation_file:$conservation_file \
     --custom $ClinVar,ClinVar,vcf,exact,0,CLNSIG,CLNREVSTAT,CLNDN \
@@ -106,14 +55,7 @@ for file in ${InputDir}/*.lnorm.vcf; do
     --plugin dbNSFP,$dbNSFPfile,$replacement_logic,gnomAD_genomes_AF,gnomAD_genomes_NFE_AF,gnomAD_genomes_POPMAX_AF,ClinPred_pred,clinvar_trait,clinvar_OMIM_id \
     --plugin dbscSNV,$dbscSNVfile \
     --plugin SpliceAI,snv=$spliceai_snv,indel=$spliceai_indel,cutoff=0.5 \
-    --format vcf \
     --tab \
-    --input_file ${file} \
-    --output_file ${OutputDir}/VEP/${ID}.VEP.RefSeq.tsv \
+    --input_file $FILE \
+    --output_file ${ID}.VEP.RefSeq.tsv \
     --force_overwrite
-
-  echo "Done with annotation of $file file!"
-
-done
-
-exit

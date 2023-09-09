@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex -o pipefail
+
 # Script for variant calling from SureSelect capture experiments
 # Uses nf-core conda env
 # Uses local sarek pipeline
@@ -15,8 +17,8 @@ echo "Probes used for capture are: $Probes."
 echo "Name of output folder for results is: $Name."
 
 if [[ $# -eq 0 ]]; then
-   echo "No arguments provided! Exiting..."
-   exit 1
+  echo "No arguments provided! Exiting..."
+  exit 1
 fi
 
 if [[ -z "$InputCsv" ]]; then
@@ -45,17 +47,16 @@ docker image prune --all --force
 
 iGenomes_base="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/"
 
-nextflow run ${PipelineDir}  \
-    -profile docker \
-    --input ${InputCsv} \
-    --outdir results-${Name} \
-    --genome GATK.GRCh38 \
-    --igenomes_base ${iGenomes_base} \
-    --wes true \
-    --intervals ${Probes} \
-    --tools haplotypecaller,deepvariant,strelka \
-    --save_output_as_bam \
-    --max_cpus 80 \
-    --max_memory 180.GB \
-    -resume
-
+nextflow run ${PipelineDir} \
+  -profile docker \
+  --input ${InputCsv} \
+  --outdir results-${Name} \
+  --genome GATK.GRCh38 \
+  --igenomes_base ${iGenomes_base} \
+  --wes true \
+  --intervals ${Probes} \
+  --tools haplotypecaller,deepvariant \
+  --save_output_as_bam \
+  --max_cpus 80 \
+  --max_memory 180.GB \
+  -resume
