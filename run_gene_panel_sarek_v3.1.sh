@@ -22,7 +22,7 @@ if [[ $# -eq 0 ]]; then
 fi
 
 if [[ -z "$InputCsv" ]]; then
-  echo "Input first positional argument: TSV with samples! Exiting..."
+  echo "Input first positional argument: CSV with samples! Exiting..."
   exit 1
 fi
 
