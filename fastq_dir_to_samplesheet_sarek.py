@@ -7,7 +7,7 @@ import argparse
 
 
 def parse_args(args=None):
-    Description = "Generate nf-core/rnaseq samplesheet from a directory of FastQ files."
+    Description = "Generate nf-core/sarek samplesheet from a directory of FastQ files."
     Epilog = "Example usage: python fastq_dir_to_samplesheet.py <FASTQ_DIR> <SAMPLESHEET_FILE>"
 
     parser = argparse.ArgumentParser(description=Description, epilog=Epilog)
