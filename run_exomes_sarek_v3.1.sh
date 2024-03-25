@@ -1,47 +1,45 @@
 #!/bin/bash
 
-# Script for variant calling from SureSelect capture experiments
-# Uses nf-core conda env
-# Uses local sarek pipeline
+set -ex -o pipefail
 
-PipelineDir="/home/students/nextflow_dir/pipelines/nf-core-sarek-3.1/workflow/"
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    -i|--input_csv)
+      INPUT_CSV="$2"
+      shift
+      shift
+      ;;
+    -o|--output_dir)
+      OUTPUT_DIR="$2"
+      shift
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: run_exomes_sarek_v3.1.sh -i|--input_csv <input_csv> -o|--output_dir <output_folder_name>"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
 
-InputCsv=$1
-Probes="/home/students/nextflow_dir/workspace/REF/agilent/SureSelectHumanAllExonV7/SureSelectHumanAllExonV7_Targets_100bp_hg38.bed"
-Name=$2
-
-echo "Input file used is: $InputCsv."
-echo "Probes used for capture are: $Probes."
-echo "Name of output folder for results is: $Name."
-
-if [[ -z "$InputCsv" ]]; then
-  echo "Input first positional argument: TSV with samples! Exiting..."
-  exit 1
-fi
-
-if [[ -z "$Name" ]]; then
-  echo "Input third positional argument: name for results output folder! Exiting..."
-  exit 1
-fi
+PIPELINE_DIR="/home/students/nextflow_dir/pipelines/nf-core-sarek-3.1/workflow/"
+PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/wes_almazov_params.yaml"
+CONFIG_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/wes_almazov.config"
 
 echo "Activating nf-core conda environment."
-source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
+#source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
 conda activate nf-core
 
-echo "Currently running shell from $(pwd)"
+docker system prune --all --force
+docker image prune --all --force
 
-iGenomes_base="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/"
-
-nextflow run ${PipelineDir}  \
+nextflow run ${PIPELINE_DIR}  \
     -profile docker \
-    --input ${InputCsv} \
-    --joint_germline true \
-    --outdir results-${Name} \
-    --genome GATK.GRCh38 \
-    --igenomes_base ${iGenomes_base} \
-    --wes true \
-    --intervals ${Probes} \
-    --tools haplotypecaller,manta \
-    --save_output_as_bam \
-    --max_cpus 80 \
-    --max_memory 180.GB \
+    -c $CONFIG_FILE
+    -params-file $PARAM_FILE \
+    --input ${INPUT_CSV} \
+    --outdir results-${OUTPUT_DIR} \
