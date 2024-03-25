@@ -1,7 +1,0 @@
-genome: 'GATK.GRCh38'
-igenomes_base: '/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/'
-wes: true
-intervals: '/mnt/hdd/nextflow_dir/workspace/REF/agilent/SureSelectHumanAllExonV7/SureSelectHumanAllExonV7_Targets_100bp_hg38.bed'
-tools: ['haplotypecaller', 'deepvariant']
-step: 'mapping'
-save_output_as_bam: true

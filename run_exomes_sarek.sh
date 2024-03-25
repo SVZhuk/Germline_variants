@@ -26,20 +26,22 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-PIPELINE_DIR="/home/students/nextflow_dir/pipelines/nf-core-sarek-3.1/workflow/"
-PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/wes_almazov_params.yaml"
+echo "Input file used : $INPUT_CSV"
+echo "Name of output folder: $OUTPUT_DIR"
+
+PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/wes_almazov_params.json"
 CONFIG_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/wes_almazov.config"
 
 echo "Activating nf-core conda environment."
-#source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
-conda activate nf-core
+source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
+conda activate nf-core-new
 
 docker system prune --all --force
 docker image prune --all --force
 
-nextflow run ${PIPELINE_DIR}  \
+nextflow run nf-core/sarek -r 3.4.0 \
     -profile docker \
-    -c $CONFIG_FILE
+    -c $CONFIG_FILE \
     -params-file $PARAM_FILE \
-    --input ${INPUT_CSV} \
-    --outdir results-${OUTPUT_DIR} \
+    --input $INPUT_CSV \
+    --outdir results-$OUTPUT_DIR \
