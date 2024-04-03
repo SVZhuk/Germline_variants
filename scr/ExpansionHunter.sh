@@ -24,13 +24,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-ExpansionHunter="/scratch/users/szhuk/hpc_run/workspace/ExpansionHunter/build/install/bin/ExpansionHunter"
+ExpansionHunter="/scratch/users/szhuk/hpc_run/workspace/bin/ExpansionHunter-v5.0.0-linux_x86_64/bin/ExpansionHunter"
 VARIANT_CATALOG="/scratch/users/szhuk/hpc_run/workspace/ExpansionHunter/variant_catalog/grch38/variant_catalog.json"
 REFERENCE_FASTA="/kuttam_fg/refdata/zhuk/iGenomes/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta"
 
 ExpansionHunter --reads $INPUT_CRAM \
                 --reference $REFERENCE_FASTA \
                 --variant-catalog $VARIANT_CATALOG \
-                --output-prefix $OUTPUT_IDX
+                --output-prefix $OUTPUT_IDX \
+                --threads 20
 
 module load samtools/1.14
