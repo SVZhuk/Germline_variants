@@ -3,7 +3,9 @@
 import pandas as pd
 
 bed_file_path = "/kuttam_fg/refdata/zhuk/Probes/SureSelectAllExonV6r2_100bp_hg38.sorted.bed"
-df = pd.read_csv(bed_file_path, sep="\t", header=None)
+df = pd.read_csv(bed_file_path, 
+                 sep="\t", 
+                 header=None)
 
 genes = ["ALS2", "ANG", "C19orf12", "CCNF", "CHCHD10", "CHMP2B", "CHRNA3","CHRNA4",
          "CHRNB4", "CREST", "DAO", "DCTN1", "ELP3", "ERBB4", "EWSR1", "FIG4", "FUS",
@@ -29,4 +31,7 @@ print(f"Probes coverage: {total_coverage}bp")
 
 print(df.head())
 
-df.to_csv("/kuttam_fg/refdata/zhuk/Probes/ATX_screen.subset.bed", sep="\t", header=None, index=False)
+df.to_csv("/kuttam_fg/refdata/zhuk/Probes/ATX_screen.subset.bed", 
+          sep="\t", 
+          header=None, 
+          index=False)

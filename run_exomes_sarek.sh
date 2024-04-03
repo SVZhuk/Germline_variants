@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -h|--help)
-      echo "Usage: run_exomes_sarek_v3.1.sh -i|--input_csv <input_csv> -o|--output_dir <output_folder_name>"
+      echo "Usage: run_exomes_sarek.sh -i|--input_csv <input_csv> -o|--output_dir <output_folder_name>"
       exit 0
       ;;
     *)
@@ -45,3 +45,4 @@ nextflow run nf-core/sarek -r 3.4.0 \
     -params-file $PARAM_FILE \
     --input $INPUT_CSV \
     --outdir results-$OUTPUT_DIR \
+    -resume

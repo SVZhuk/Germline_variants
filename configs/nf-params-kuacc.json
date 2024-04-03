@@ -1,0 +1,8 @@
+{
+    "wes": true,
+    "intervals": "/kuttam_fg/refdata/zhuk/Probes/SureSelectAllExonV6r2_100bp_hg38.sorted.bed",
+    "tools": "haplotypecaller",
+    "igenomes_base": "/kuttam_fg/refdata/zhuk/iGenomes/",
+    "genome": "GATK.GRCh38",
+    "step": "mapping"
+}

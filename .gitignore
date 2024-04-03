@@ -1,0 +1,10 @@
+.mypy_cache
+work/
+results*/
+.nexflow/
+.nextflow*
+venv/
+.venv/
+.idea/
+.vscode/
+*.csv
