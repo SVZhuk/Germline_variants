@@ -24,7 +24,6 @@ ulimit -a
 module load singularity/3.10.4
 module load java/17.0.1
 
-
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
