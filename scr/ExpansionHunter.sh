@@ -35,3 +35,8 @@ ExpansionHunter --reads $INPUT_CRAM \
                 --threads 20
 
 module load samtools/1.14
+
+BAM_FILE="${OUTPUT_IDX}_realigned.bam"
+
+samtools sort $BAM_FILE -o ${OUTPUT_IDX}_sorted.bam
+samtools index ${OUTPUT_IDX}_sorted.bam
