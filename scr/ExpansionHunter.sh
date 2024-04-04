@@ -25,15 +25,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ExpansionHunter="/scratch/users/szhuk/hpc_run/workspace/bin/ExpansionHunter-v5.0.0-linux_x86_64/bin/ExpansionHunter"
-VARIANT_CATALOG="/scratch/users/szhuk/hpc_run/workspace/RepeatCatalogs/hg38/variant_catalog.json"
+VARIANT_CATALOG="/scratch/users/szhuk/hpc_run/workspace/ExpansionHunter/variant_catalog/grch38/variant_catalog.json"
 REFERENCE_FASTA="/kuttam_fg/refdata/zhuk/iGenomes/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta"
 
 ExpansionHunter --reads $INPUT_CRAM \
                 --reference $REFERENCE_FASTA \
                 --variant-catalog $VARIANT_CATALOG \
                 --output-prefix $OUTPUT_IDX \
-                --threads 20 \
-                --analysis-mode streaming
+                --threads 20
 
 module load samtools/1.14
 
@@ -42,8 +41,8 @@ BAM_FILE="${OUTPUT_IDX}_realigned.bam"
 samtools sort $BAM_FILE -o ${OUTPUT_IDX}_sorted.bam
 samtools index ${OUTPUT_IDX}_sorted.bam
 
-REViewer-v0.2.7-linux_x86_64 --reads ATX316_sorted.bam \
+REViewer-v0.2.7-linux_x86_64 --reads ${OUTPUT_IDX}_sorted.bam \
     --vcf ${OUTPUT_IDX}.vcf \
     --reference $REFERENCE_FASTA \
     --catalog $VARIANT_CATALOG \
-    --locus ATXN2,SCA2 --output-prefix ATXN2_SCA2_${OUTPUT_IDX}
+    --locus ATXN2 --output-prefix ATXN2_${OUTPUT_IDX}
