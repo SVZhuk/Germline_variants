@@ -32,7 +32,8 @@ ExpansionHunter --reads $INPUT_CRAM \
                 --reference $REFERENCE_FASTA \
                 --variant-catalog $VARIANT_CATALOG \
                 --output-prefix $OUTPUT_IDX \
-                --threads 20
+                --threads 20 \
+                --analysis-mode streaming
 
 module load samtools/1.14
 
