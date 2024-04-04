@@ -32,7 +32,8 @@ ExpansionHunter --reads $INPUT_CRAM \
                 --reference $REFERENCE_FASTA \
                 --variant-catalog $VARIANT_CATALOG \
                 --output-prefix $OUTPUT_IDX \
-                --threads 20
+                --threads 20 \
+                --min-locus-coverage 5
 
 module load samtools/1.14
 
@@ -40,3 +41,9 @@ BAM_FILE="${OUTPUT_IDX}_realigned.bam"
 
 samtools sort $BAM_FILE -o ${OUTPUT_IDX}_sorted.bam
 samtools index ${OUTPUT_IDX}_sorted.bam
+
+REViewer-v0.2.7-linux_x86_64 --reads ATX316_sorted.bam \
+    --vcf ${OUTPUT_IDX}.vcf \
+    --reference $REFERENCE_FASTA \
+    --catalog $VARIANT_CATALOG \
+    --locus ATXN2 --output-prefix ATXN2_${OUTPUT_IDX}
