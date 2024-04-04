@@ -32,8 +32,7 @@ ExpansionHunter --reads $INPUT_CRAM \
                 --reference $REFERENCE_FASTA \
                 --variant-catalog $VARIANT_CATALOG \
                 --output-prefix $OUTPUT_IDX \
-                --threads 20 \
-                --min-locus-coverage 5
+                --threads 20
 
 module load samtools/1.14
 
