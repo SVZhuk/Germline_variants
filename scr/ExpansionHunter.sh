@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 
-set -e
+###### Request resources ######
+
+#SBATCH --job-name=expansionHunter
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBARCH --cpus-per-task=40
+#SBATCH --partition=mid
+#SBATCH --time=24:00:00
+#SBATCH --output=atxn-repeats.out
+#SBATCH --mail-type=NONE
+#SBATCH --mail-user=szhuk@ku.edu.tr
+
+###############################
+
+set -euo pipefail
 
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -40,7 +54,7 @@ for file in $(find ${INPUT_DIR} -type f -name "*.cram"); do
                     --reference $REFERENCE_FASTA \
                     --variant-catalog $VARIANT_CATALOG \
                     --output-prefix $ID \
-                    --threads 20
+                    --threads 30 || { echo "ExpansionHunter failed for ID: $ID"; continue; }
 
     BAM_FILE="${ID}_realigned.bam"
 
@@ -51,8 +65,10 @@ for file in $(find ${INPUT_DIR} -type f -name "*.cram"); do
         --vcf ${ID}.vcf \
         --reference $REFERENCE_FASTA \
         --catalog $VARIANT_CATALOG \
-        --locus ATXN2 --output-prefix ATXN2_${ID}
+        --locus ATXN1,ATXN2,ATXN3 --output-prefix ATXN_${ID}
 
-    sed -n '2p' ATXN2_${ID}.metrics.tsv >> metrics_file.tsv
+    sed -n '2,4p' ATXN_${ID}.metrics.tsv >> metrics_file.tsv
+
+    rm ${ID}_sorted.bam*
 
 done
