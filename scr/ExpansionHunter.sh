@@ -40,7 +40,7 @@ module load samtools/1.14
 VARIANT_CATALOG="/scratch/users/szhuk/hpc_run/workspace/ExpansionHunter/variant_catalog/grch38/variant_catalog.json"
 REFERENCE_FASTA="/kuttam_fg/refdata/zhuk/iGenomes/Homo_sapiens/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta"
 
-echo -e "VariantId\tGenotype\tAlleleDepth" > metrics_file.tsv
+echo -e "SampleId\tVariantId\tGenotype\tAlleleDepth" > metrics_file.tsv
 
 for file in $(find ${INPUT_DIR} -type f -name "*.cram"); do
     if [[ ! -f "${file}" ]] || [[ ! -r "${file}" ]]; then
@@ -67,7 +67,7 @@ for file in $(find ${INPUT_DIR} -type f -name "*.cram"); do
         --catalog $VARIANT_CATALOG \
         --locus ATXN1,ATXN2,ATXN3 --output-prefix ATXN_${ID}
 
-    sed -n '2,4p' ATXN_${ID}.metrics.tsv >> metrics_file.tsv
+    awk -v id="${ID}" '{print id "\t" $0}' ATXN_${ID}.metrics.tsv | sed -n '2,4p' >> metrics_file.tsv
 
     rm ${ID}_sorted.bam*
 
