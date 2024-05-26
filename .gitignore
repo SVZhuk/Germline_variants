@@ -1,10 +1,11 @@
 .mypy_cache
 work/
 results*/
-.nexflow/
+data/
 .nextflow*
 venv/
 .venv/
 .idea/
 .vscode/
 *.csv
+.DS_Store
