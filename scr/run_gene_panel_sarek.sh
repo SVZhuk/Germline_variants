@@ -1,70 +1,67 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Script for variant calling from SureSelect capture experiments
-# Uses nf-core conda env
-# Uses local sarek pipeline
+set -ex -o pipefail
 
-Ref="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta"
-RefInd="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.fasta.fai"
-RefDict="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Sequence/WholeGenomeFasta/Homo_sapiens_assembly38.dict"
-BWAind="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Sequence/BWAIndex/Homo_sapiens_assembly38.fasta.64.{alt,amb,ann,bwt,pac,sa}"
-dbsnp="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Annotation/GATKBundle/dbsnp_138.hg38.vcf.gz"
-dbsnpIndex="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Annotation/GATKBundle/dbsnp_138.hg38.vcf.gz.tbi"
-indels="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Annotation/GATKBundle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
-indelsIndex="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Annotation/GATKBundle/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz.tbi"
-intervals="/mnt/hdd/nextflow_dir/workspace/REF/iGenomes/GATK/GRCh38/Annotation/intervals/wgs_calling_regions.hg38.bed"
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    -i|--input_csv)
+      INPUT_CSV="$2"
+      shift
+      shift
+      ;;
+    -o|--output_dir)
+      OUTPUT_DIR="$2"
+      shift
+      shift
+      ;;
+    -p| --gene_panel)
+      GENE_PANEL="$2"
+      shift
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: run_gene_panel_sarek.sh -i|--input_csv <input_csv> -o|--output_dir <output_folder_name> -p|--gene_panel <gene_panel_name> -h|--help"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+echo "Input file used : $INPUT_CSV"
+echo "Name of output folder: $OUTPUT_DIR"
+echo "Gene panel used: $GENE_PANEL"
+
+if [[ $GENE_PANEL == "hyperchol" ]]; then
+    PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/hyperchol_almazov_params.json"
+elif [[ $GENE_PANEL == "ccp" ]]; then
+    PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/ccp_almazov_params.json"
+elif [[ $GENE_PANEL == "hcmp" ]]; then
+    PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/hcmp_almazov_params.json"
+elif [[ $GENE_PANEL == "lqt" ]]; then
+    PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/lqt_almazov_params.json"
+else
+    echo "Unknown gene panel: $GENE_PANEL"
+    echo "Please use one of the following gene panels: hyperchol, ccp, hcmp, lqt."
+    exit 1
+fi
+
+CONFIG_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/wes_almazov.config"
+
+echo "Activating nf-core conda environment."
+source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
+conda activate nf-core-new
 
 docker system prune --all --force
 docker image prune --all --force
 
-InputTsv=$1
-Probes=$2
-Name=$3
-
-echo "Input file used is: $InputTsv."
-echo "Probes used for capture are: $Probes."
-echo "Name of output folder for results is: $Name."
-
-if [[ -z "$InputTsv" ]]; then
-  echo "Input first positional argument: TSV with samples! Exiting..."
-  exit 1
-fi
-
-if [[ -z "$Probes" ]]; then
-  echo "Input second positional argument: bed file with sorted probe intervals! Exiting..."
-  exit 1
-fi
-
-if [[ -z "$Name" ]]; then
-  echo "Input third positional argument: name for results output folder! Exiting..."
-  exit 1
-fi
-
-echo "Activating nf-core conda environment."
-source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
-conda activate nf-core
-
-echo "Currently running shell from $(pwd)"
-
-nextflow run nf-core/sarek -r 2.7.1 -profile docker \
-  --input $InputTsv \
-  --step mapping \
-  --generate_gvcf \
-  --tools HaplotypeCaller \
-  --outdir ./results-$Name \
-  --genome GRCh38 \
-  --target_bed $Probes \
-  --intervals $intervals \
-  --dict $RefDict \
-  --fasta $Ref \
-  --fasta_fai $RefInd \
-  --bwa $BWAind \
-  --dbsnp $dbsnp \
-  --dbsnp_index $dbsnpIndex \
-  --known_indels $indels \
-  --known_indels_index $indelsIndex \
-  --max_cpus 80 \
-  --single_cpu_mem '8.GB' \
-  --max_memory '150.GB'
-
-exit
+nextflow run nf-core/sarek -r 3.4.0 \
+    -profile docker \
+    -c $CONFIG_FILE \
+    -params-file $PARAM_FILE \
+    --input $INPUT_CSV \
+    --outdir results-$OUTPUT_DIR \
+    -resume
