@@ -45,7 +45,7 @@ elif [[ $GENE_PANEL == "lqt" ]]; then
     PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/lqt_almazov_params.json"
 else
     echo "Unknown gene panel: $GENE_PANEL"
-    echo "Please use one of the following gene panels: hyperchol, ccp, hcmp, lqt."
+    echo "Use one of the following gene panels: hyperchol, ccp, hcmp, lqt."
     exit 1
 fi
 
@@ -60,8 +60,8 @@ docker image prune --all --force
 
 nextflow run nf-core/sarek -r 3.4.0 \
     -profile docker \
-    -c $CONFIG_FILE \
-    -params-file $PARAM_FILE \
+    -c ${CONFIG_FILE} \
+    -params-file ${PARAM_FILE} \
     --input $INPUT_CSV \
     --outdir results-$OUTPUT_DIR \
     -resume

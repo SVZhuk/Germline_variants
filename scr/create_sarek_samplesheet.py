@@ -4,6 +4,7 @@ import os
 import re
 import argparse
 import sys
+import pathlib
 import csv
 
 def parse_args() -> argparse.Namespace:

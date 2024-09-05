@@ -33,6 +33,7 @@ PARAM_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/we
 CONFIG_FILE="/mnt/hdd/nextflow_dir/workspace/scripts/Germline_variants/configs/wes_almazov.config"
 
 echo "Activating nf-core conda environment."
+# shellcheck disable=SC1091
 source /mnt/hdd/nextflow_dir/workspace/anaconda3/etc/profile.d/conda.sh
 conda activate nf-core-new
 
@@ -43,6 +44,6 @@ nextflow run nf-core/sarek -r 3.4.0 \
     -profile docker \
     -c $CONFIG_FILE \
     -params-file $PARAM_FILE \
-    --input $INPUT_CSV \
-    --outdir results-$OUTPUT_DIR \
-    -resume
+    --input "$INPUT_CSV" \
+    --outdir results-"$OUTPUT_DIR" \
+    -resume | tee -a log-"$OUTPUT_DIR".txt
