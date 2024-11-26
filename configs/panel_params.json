@@ -1,6 +1,5 @@
 {
     "wes": true,
-    "intervals": "/mnt/hdd/nextflow_dir/workspace/REF/agilent/hypercholest2020/new_Chol_probes_100b.bed",
     "tools": "haplotypecaller",
     "save_output_as_bam": true,
     "joint_germline": false,
