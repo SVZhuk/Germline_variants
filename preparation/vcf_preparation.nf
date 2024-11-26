@@ -14,6 +14,8 @@ workflow {
         .splitCsv(header: true)
         .map { row -> tuple(row.patient, row.sample, row.variantcaller, file(row.vcf)) }
 
+    adjust_script = file("report_gen/adjust_genotype_table.py")
+
     // Split multiallelic sites
     SPLIT_MULTIALLELIC(input_ch)
 
@@ -28,6 +30,9 @@ workflow {
 
     // Annotate with VEP
     VEP_ANNOTATION(LEFT_NORMALIZE.out.normalized_vcf)
+
+    // Adjust genotype table
+    ADJUST_GENOTYPE_TABLE(VARIANTS_TO_TABLE.out.table_out, adjust_script)
 }
 
 // Define processes
@@ -90,7 +95,7 @@ process VARIANTS_TO_TABLE {
     tuple val(patient), val(sample), val(variantcaller), path(vcf), path(idx)
 
     output:
-    path "${sample}.table"
+    tuple val(patient), val(sample), val(variantcaller), path("${sample}.table"), emit: table_out
 
     script:
     """
@@ -99,6 +104,24 @@ process VARIANTS_TO_TABLE {
         -F CHROM -F POS -F TYPE -F REF -F ALT -F FILTER -GF AD -GF DP -GF GQ \
         -O ${sample}.table \
         --show-filtered
+    """
+}
+
+process ADJUST_GENOTYPE_TABLE {
+    publishDir "${params.output_dir}/TSVs", mode: 'copy'
+
+    input:
+    tuple val(patient), val(sample), val(variantcaller), path(table)
+    path(script)
+
+    output:
+    path "${sample}.mod.tsv"
+
+    script:
+    """
+    cp ${table} ./input_table.tsv
+    python ${script} --file_path input_table.tsv
+    mv input_table.mod.tsv ${sample}.mod.tsv
     """
 }
 

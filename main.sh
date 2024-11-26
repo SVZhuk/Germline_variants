@@ -120,7 +120,8 @@ function run_vcf_preparation() {
     --output_dir $output_dir \
     --reference $REFERENCE_GENOME \
     -c ${SELF_PATH}/preparation/nextflow.config \
-    -resume"
+    -resume \
+    -dump-channels"
 
   log_and_run "$cmd"
 }
