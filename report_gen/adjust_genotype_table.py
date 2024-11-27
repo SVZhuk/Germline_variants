@@ -5,13 +5,8 @@ import pandas as pd
 
 
 def process_tsv(file_path):
-    # Read the TSV file
     df = pd.read_csv(file_path, sep="\t", header=0, dtype=str)
-
-    # Add the 'uploaded_variation' column
     df["uploaded_variation"] = None
-
-    # Process the 'uploaded_variation' column
     df_indel = df[df["TYPE"] == "INDEL"]
     df["uploaded_variation"] = df.apply(
         lambda row: f"{row['CHROM']}_{row['POS']}_{row['REF']}/{row['ALT']}", axis=1
@@ -23,15 +18,12 @@ def process_tsv(file_path):
         axis=1,
     )
 
-    # Select specific columns
     genot_df_trimmed = df[["TYPE"] + df.columns[5:10].tolist()]
 
-    # Generate the output file name
     output_file_path = file_path.replace(".tsv", ".mod.tsv")
     if output_file_path == file_path:
         output_file_path = file_path + ".mod.tsv"
 
-    # Write the modified DataFrame to a new TSV file
     genot_df_trimmed.to_csv(output_file_path, sep="\t", index=False)
 
     print(f"Done processing {os.path.basename(file_path)}")

@@ -1,6 +1,8 @@
 # Germline_variants
 
-Pipeline is based on serek
+##### Description
+
+Uses sarek nextflow pipeline for calling of germline variants. Annotates vcf files and produces excel spreadsheets for review.
 
 # Various scripts for identification and annotation of germline variants
 
@@ -11,3 +13,11 @@ Pipeline is based on serek
 Pipeline uses `conda` to manage dependencies.
 
 # Reference Data
+
+# To DOs
+
+* [ ] update VEP cache
+* [ ] update ClinVar
+* [ ] better output handling
+* [ ] create single Dockerfile -> switch from conda
+* [ ] move copy of reference files to IMBG storage

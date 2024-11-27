@@ -119,6 +119,8 @@ function run_vcf_preparation() {
     --csv_input $input_table \
     --output_dir $output_dir \
     --reference $REFERENCE_GENOME \
+    --metadata $METADATA_FILE \
+    --expression_table $EXPRESSION_TABLE \
     -c ${SELF_PATH}/preparation/nextflow.config \
     -resume \
     -dump-channels"

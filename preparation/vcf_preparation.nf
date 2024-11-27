@@ -5,6 +5,8 @@ nextflow.enable.dsl = 2
 params.csv_input = params.csv_input
 params.output_dir = params.output_dir
 params.reference = params.reference
+params.metadata = params.metadata
+params.expression_table = params.expression_table
 
 // Define the main workflow
 workflow {
@@ -15,6 +17,7 @@ workflow {
         .map { row -> tuple(row.patient, row.sample, row.variantcaller, file(row.vcf)) }
 
     adjust_script = file("report_gen/adjust_genotype_table.py")
+    report_script = file("report_gen/prepare_report_table.py")
 
     // Split multiallelic sites
     SPLIT_MULTIALLELIC(input_ch)
@@ -33,6 +36,21 @@ workflow {
 
     // Adjust genotype table
     ADJUST_GENOTYPE_TABLE(VARIANTS_TO_TABLE.out.table_out, adjust_script)
+
+    // Prepare report table
+    vep_and_genotype = VEP_ANNOTATION.out.vep_out
+        .join(ADJUST_GENOTYPE_TABLE.out.adjusted_table, by: [0,1,2])
+        .map { patient, sample, variantcaller, vep_table, adjusted_table ->
+            println "Debug: $patient, $sample, $variantcaller, $vep_table, $adjusted_table"
+        tuple(patient, sample, variantcaller, vep_table, adjusted_table)
+    }
+
+    PREPARE_REPORT_TABLE(
+        vep_and_genotype,
+        report_script,
+        file(params.metadata),
+        file(params.expression_table)
+    )
 }
 
 // Define processes
@@ -115,7 +133,8 @@ process ADJUST_GENOTYPE_TABLE {
     path(script)
 
     output:
-    path "${sample}.mod.tsv"
+    tuple val(patient), val(sample), val(variantcaller), 
+    path("${sample}.mod.tsv"), emit: adjusted_table
 
     script:
     """
@@ -136,7 +155,8 @@ process VEP_ANNOTATION {
     tuple val(patient), val(sample), val(variantcaller), path(vcf)
 
     output:
-    path "${sample}.VEP.RefSeq.tsv"
+    tuple val(patient), val(sample), val(variantcaller), 
+    path("${sample}.VEP.RefSeq.tsv"), emit: vep_out
 
     script:
     """
@@ -187,5 +207,27 @@ process VEP_ANNOTATION {
     --force_overwrite
 
     mv \${PWD}/vep_output/${sample}.VEP.RefSeq.tsv .
+    """
+}
+
+process PREPARE_REPORT_TABLE {
+    publishDir "${params.output_dir}/annotation", mode: 'copy'
+
+    input:
+    tuple val(patient), val(sample), val(variantcaller), path(vep_table), path(adjusted_table)
+    path(script)
+    path(metadata)
+    path(expression_table)
+
+    output:
+    path "${sample}.report.tsv", emit: report
+
+    script:
+    """
+    python ${script} --vep_table ${vep_table} \
+        --genotype_table ${adjusted_table} \
+        --metadata ${metadata} \
+        --expression_table ${expression_table} \
+        --output ${sample}.report.tsv
     """
 }
